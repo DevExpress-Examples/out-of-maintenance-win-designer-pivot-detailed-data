@@ -24,11 +24,11 @@ namespace DesignerSample {
         }
 
         /// <summary>
-        /// Creates the "Allow Displaying Details" button for the Ribbon
+        /// Creates the "Display Details" button for the Ribbon
         /// </summary>
         BarCheckItem CreateRibbonButton() {
             BarCheckItem showDetailsItem = new BarCheckItem();
-            showDetailsItem.Caption = "Allow Displaying Details";
+            showDetailsItem.Caption = "Display Details";
             showDetailsItem.ImageOptions.SvgImage = global::PivotDetailExtension.Properties.Resources.Detailed;
             showDetailsItem.ItemClick += showDetailsItem_ItemClick;
             return showDetailsItem;
@@ -97,7 +97,7 @@ namespace DesignerSample {
 
         #region Designer Business Logic
         /// <summary>
-        /// The "Allow Dispalying Details" button's click handler. Enables / Disables the custom functionality.
+        /// The "Dispaly Details" button's click handler. Enables / Disables the custom functionality.
         /// </summary>
         void showDetailsItem_ItemClick(object sender, ItemClickEventArgs e) {
             if(targetDesigner.SelectedDashboardItem is PivotDashboardItem) {
@@ -110,7 +110,7 @@ namespace DesignerSample {
         }
 
         /// <summary>
-        /// Set the Checked/Unchecked state of the "Allow Dispalying Details" button based on the currently selected item.
+        /// Set the Checked/Unchecked state of the "Dispaly Details" button based on the currently selected item.
         /// </summary>
         void UpdateButtonState() {
             if(targetDesigner.SelectedDashboardItem == null) return;
@@ -118,7 +118,7 @@ namespace DesignerSample {
         }
 
         /// <summary>
-        /// Invokes update of the "Allow Dispalying Details" button's state when selecting another item.
+        /// Invokes update of the "Dispaly Details" button's state when selecting another item.
         /// </summary>
         void Designer_DashboardItemSelected(object sender, DashboardItemSelectionChangedEventArgs e) {
             if(targetDesigner.Dashboard.Items[e.DashboardItemName] is PivotDashboardItem) {
