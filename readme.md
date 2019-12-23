@@ -1,6 +1,8 @@
 # How to display detailed data for a clicked Pivot's element
 
-This example shows how to create an extension for the [Dashboard Designer](https://docs.devexpress.com/Dashboard/117006/create-the-designer-and-viewer-applications/winforms-designer) / [Dashboard Viewer](https://docs.devexpress.com/Dashboard/117122/create-the-designer-and-viewer-applications/winforms-viewer) controls that displays detailed data for a clicked pivot element (a data cell or a field value). This extension add the **Display Details** button to the ribbon, that behaves like default interactivity options. So that end users who design dashboards can enable or disable this functionality in the same manner as [Drill-Down](https://docs.devexpress.com/Dashboard/15703/create-dashboards/create-dashboards-in-the-winforms-designer/interactivity/drill-down), [Master Filtering](https://docs.devexpress.com/Dashboard/15702/create-dashboards/create-dashboards-in-the-winforms-designer/interactivity/master-filtering), or other options.
+This example shows how to create an extension for the [Dashboard Designer](https://docs.devexpress.com/Dashboard/117006) / [Dashboard Viewer](https://docs.devexpress.com/Dashboard/117122) controls that displays detailed data for a clicked pivot element (a data cell or a field value). This extension adds the **Display Details** button to the ribbon. End users who design dashboards can enable or disable this functionality in the same manner as [Drill-Down](https://docs.devexpress.com/Dashboard/15703), [Master Filtering](https://docs.devexpress.com/Dashboard/15702), or other options.
+
+The detailed data is displayed in a new form ([XtraForm](https://docs.devexpress.com/WindowsForms/114560) with [GridControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraGrid.GridControl)). You can customize the form and grid in your own ways. For example, you can change the form's [icon](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.XtraForm.IconOptions) or apply one of the [DevExpress skins](https://docs.devexpress.com/WindowsForms/2399/build-an-application/skins).
 
 ![](images/pivot-detailed-data.png)
 
@@ -13,7 +15,7 @@ This approach has the following limitations:
 1.	When you duplicate the Pivot item, the state of the **Display Details** option is ignored.
 2.	The **Display Details** option's changes cannot be reverted by the "Undo" and "Redo" Ribbon buttons. 
 
-Below you find a step-by-step instruction to create the extension from scratch. You can divide the task implementation to several parts:
+Below you find a step-by-step instruction that shows to create the extension from scratch. You can divide the task implementation to several parts:
 
 ## Interactivity action code
 
@@ -94,7 +96,6 @@ Below you find a step-by-step instruction to create the extension from scratch. 
         showDetatilsButton.Checked = IsDetailsEnabled(targetDesigner.SelectedDashboardItem.ComponentName);
     }
     ```
-
 
 ## Save / load custom information
 
