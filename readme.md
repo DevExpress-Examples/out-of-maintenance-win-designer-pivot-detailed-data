@@ -11,9 +11,6 @@ The example contains a solution with two projects:
 1.	**PivotDetailExtension** – contains the code related to the extension. This project produces a custom class library (_PivotDetailExtension.dll_) that can be referenced and reused in other Designer / Viewer applications.
 2.	**DesignerSample** – is a simple dashboard designer application that demonstrates how to use the extension.
 
-This approach has the following limitations: 
-1.	When you duplicate the Pivot item, the state of the **Display Details** option is ignored.
-2.	The **Display Details** option's changes cannot be reverted by the "Undo" and "Redo" Ribbon buttons. 
 
 Below you find a step-by-step instruction that shows to create the extension from scratch. You can divide the task implementation to several parts:
 
@@ -32,18 +29,26 @@ Below you find a step-by-step instruction that shows to create the extension fro
     }
     ```
 
-3. The Dashboard Designer raises the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event when an end user clicks the expand / collapse button in a row or column or click an empty area. To skip displaying the details dialog in these case, handle the [DashboardDesigner.DashboardItemControlCreated](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemControlCreated) event with the following logic:
+3. The Dashboard Designer raises the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event when an end user clicks the expand / collapse button in a row or column or click an empty area. To skip displaying the details dialog in these case, get information about the grid elements located at the clicked point via the [PivotGridControl.CalcHitInfo(Point)](https://docs.devexpress.com/WindowsForms/DevExpress.XtraPivotGrid.PivotGridControl.CalcHitInfo(System.Drawing.Point)) method and check if it is a valid area. Update the DashboardItemClick event with the following logic:
 
     ```cs
-    bool doNotShowDataForThisArea = false;
-    void PivotGridControl_MouseDown(object sender, MouseEventArgs e) {
-        PivotGridControl pivot = sender as PivotGridControl;
-        PivotGridHitInfo hi = pivot.CalcHitInfo(e.Location);
+    void DashboardItemClick(object sender, DashboardItemMouseActionEventArgs e) {
+            
+            if (IsDetailsEnabled(e.DashboardItemName))
+            {
+                PivotGridControl pivot = dashboardDesigner.GetUnderlyingControl(e.DashboardItemName) as PivotGridControl;
+                PivotGridHitInfo hi = pivot.CalcHitInfo(pivot.PointToClient(Cursor.Position));
 
-        doNotShowDataForThisArea =
-            (hi.HitTest == PivotGridHitTest.Value && hi.ValueInfo.ValueHitTest == PivotGridValueHitTest.ExpandButton)
-            || (hi.HitTest == PivotGridHitTest.None);
-    }
+                bool doNotShowDataForThisArea =
+                    (hi.HitTest == PivotGridHitTest.Value && hi.ValueInfo.ValueHitTest == PivotGridValueHitTest.ExpandButton)
+                    || (hi.HitTest == PivotGridHitTest.None);
+                if (!doNotShowDataForThisArea)
+                    using (DetailData detailForm = new DetailData(e.GetUnderlyingData()))
+                    {
+                        detailForm.ShowDialog();
+                    }
+            }
+        }
     ```
 
     The _doNotShowDataForThisArea_ variable determines whether an end user clicked the allowed area.
@@ -55,34 +60,59 @@ Below you find a step-by-step instruction that shows to create the extension fro
     Find the Page Group to which you can add your custom option. The following code snippet finds the **Pivot** → **Data** → **Interactivity** group:
 
     ```cs
-    RibbonControl ribbon = targetDesigner.MenuManager as RibbonControl;
-    PivotToolsRibbonPageCategory category = ribbon.PageCategories.OfType<PivotToolsRibbonPageCategory>().First();
-    DataRibbonPage page = category.Pages.OfType<DataRibbonPage>().First();
-    InteractivitySettingsRibbonPageGroup InteractivityGroup = page.Groups.OfType<InteractivitySettingsRibbonPageGroup>().First();
+            RibbonControl ribbon = dashboardDesigner.Ribbon;
+            RibbonPage page = ribbon.GetDashboardRibbonPage(DashboardBarItemCategory.PivotTools, DashboardRibbonPage.Data);
+            RibbonPageGroup group = page.Groups.OfType<DevExpress.DashboardWin.Bars.InteractivitySettingsRibbonPageGroup>().First();
     ```
 
 5. Create your custom button and add it to the found group.
+     ```cs
+            showDetatilsBarButton = CreateRibbonButton();
+            group.ItemLinks.Add(showDetatilsBarButton);
+    ```
+    
+6. Store information wheter the custom option enabled or disabled. This extension strore this information in items' custom properties.
 
-6. Store information about items with enabled custom functionality. This extension uses a simple list of strings to store component names of items. As a variant, you can implement your own storage.
-
-    On the custom button click, add or remove the currently selected dashboard item's name to the storage:
+    On the custom button click, createa a new instance of the CustomPropertyHistoryItem object, specify its setting and pass it to the DashboardDesigner.AddToHistory method:
 
     ```cs
-    List<string> pivotItemsWithEnabledDetails;
-    private void ShowDetatilsItem_ItemClick(object sender, ItemClickEventArgs e)     {
-        if(targetDesigner.SelectedDashboardItem is PivotDashboardItem)         {
-            if (isDetailsEnabled(targetDesigner.SelectedDashboardItem.ComponentName))
-                pivotItemsWithEnabledDetails.Remove(targetDesigner.SelectedDashboardItem.ComponentName);
-            else
-                pivotItemsWithEnabledDetails.Add(targetDesigner.SelectedDashboardItem.ComponentName);
+    void showDetailsItem_ItemClick(object sender, ItemClickEventArgs e) {
+            if (dashboardDesigner.SelectedDashboardItem is PivotDashboardItem)
+            {
+                bool newValue = !IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem);
+                string status = IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem) ? "Enaled" : "Disabled";
+                var historyItem = new CustomPropertyHistoryItem(
+                    dashboardDesigner.SelectedDashboardItem, //Item that property should be changed
+                    PropertyName,               //the name of the custom propeprty that should be changed
+                    newValue.ToString(),        //new value of the custom propeprty
+                    "Detail Popup " + status);  //text displayed in the Undo/Redo button's tooltip
+                dashboardDesigner.AddToHistory(historyItem);
+            }
         }
-        UpdateButtonState();
-    }
+    ``` 
+    
+7. After you added a history item you need to update your custom ribbon button's checked state. for this handle the DashbaordDesigner.DashboardCustomPropertyChanged event:
+    ```cs 
+        private void TargetDesigner_DashboardCustomPropertyChanged(object sender, CustomPropertyChangedEventArgs e)
+        {
+            UpdateButtonState();
+        }
+
+        void UpdateButtonState() {
+            if(dashboardDesigner.SelectedDashboardItem == null) return;
+            showDetatilsBarButton.Checked = IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem);
+        }
+
     ``` 
 
-7. Determine whether the custom functionality is enabled for an item by checking its name in the storage. Add this check to the _DashboardItemClick_ event handler.
+8. To determine whether the custom functionality is enabled for an item check its CustomProperties.
+    ```cs
+        bool IsDetailsEnabled(DashboardItem item) {
+            return Convert.ToBoolean(item.CustomProperties.GetValue(PropertyName));
+        }
+    ``` 
 
-    You can aldo update your custom ribbon button's checked sate dynamically depending on the currently selected item. For this, handle the [DashboardDesigner.DashboardItemSelectionChanged](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemSelectionChanged) event.
+9. Update your custom ribbon button's checked state dynamically depending on the currently selected item. For this, handle the [DashboardDesigner.DashboardItemSelectionChanged](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemSelectionChanged) event.
     
     ```cs
     void Designer_DashboardItemSelected(object sender, DashboardItemSelectionChangedEventArgs e) {
@@ -90,24 +120,5 @@ Below you find a step-by-step instruction that shows to create the extension fro
             UpdateButtonState();
         }
     }
-
-    void UpdateButtonState() {
-        if(targetDesigner.SelectedDashboardItem == null) return;
-        showDetatilsButton.Checked = IsDetailsEnabled(targetDesigner.SelectedDashboardItem.ComponentName);
-    }
     ```
-
-## Save / load custom information
-
-8. The next step is to save information about items with enabled option to a dashboard file. To add custom information to a dashboard file when saving it, handle the [DashboardDesigner.DashboardSaving](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardSaving) event. The following code snippet serializes the collection of component names to _XDocument_ and passes it to the _UserData_ section intended for storing custom data: 
-    ```cs
-    private void Designer_DashboardSaving(object sender, DashboardSavingEventArgs e)         {
-        XmlSerializer xs = new XmlSerializer(typeof(List<string>));
-        XDocument xElement = new XDocument();
-
-        using (XmlWriter xw = xElement.CreateWriter())
-            xs.Serialize(xw, pivotItemsWithEnabledDetails);
-        e.Dashboard.UserData = xElement.Root;
-    }
-    ```
-9.	To read this data further when opening a dashboard file, handle the [DashboardDesigner.DashboardLoaded](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardLoaded) event and deserialize data from UserData section in a similar manner.
+    
