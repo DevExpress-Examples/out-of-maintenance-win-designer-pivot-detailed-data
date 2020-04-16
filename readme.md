@@ -8,17 +8,17 @@ The detailed data is displayed in a new form ([XtraForm](https://docs.devexpress
 
 The example contains a solution with two projects:
 
-1.	**PivotDetailExtension** – contains the code related to the extension. This project produces a custom class library (_PivotDetailExtension.dll_) that can be referenced and reused in other Designer / Viewer applications.
-2.	**DesignerSample** – is a simple dashboard designer application that demonstrates how to use the extension.
+1.	`PivotDetailExtension` – contains the code related to the extension. This project produces a custom class library (_PivotDetailExtension.dll_) that can be referenced and reused in other Designer / Viewer applications.
+2.	`DesignerSample` – is a simple dashboard designer application that demonstrates how to use the extension.
 
 
-Below you find a step-by-step instruction that shows to create the extension from scratch. You can divide the task implementation to several parts:
+Below you find a step-by-step instruction that shows how to create the extension from scratch. You can divide the task implementation to several parts:
 
 ## Interactivity action code
 
 1. Create a form that displays detailed data from the clicked item. This extension uses [XtraForm](https://docs.devexpress.com/WindowsForms/114560/controls-and-libraries/forms-and-user-controls/xtraform) with [GridControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraGrid.GridControl).
 
-2. Handle the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event to get information about the clicked element. Call the [DashboardItemMouseHitTestEventArgs.GetUnderlyingData](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardItemMouseHitTestEventArgs.GetUnderlyingData) method to obtain the element's underlying data and display them in your custom form.
+2. Handle the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event to get information about the clicked element. Call the [DashboardItemMouseHitTestEventArgs.GetUnderlyingData](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardItemMouseHitTestEventArgs.GetUnderlyingData) method to obtain the element's underlying data and display it in your custom form.
 
     ```cs
     void DashboardItemClick(object sender, DashboardItemMouseActionEventArgs e) {
@@ -29,7 +29,7 @@ Below you find a step-by-step instruction that shows to create the extension fro
     }
     ```
 
-3. The Dashboard Designer raises the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event when an end user clicks the expand / collapse button in a row or column or click an empty area. To skip displaying the details dialog in these case, get information about the grid elements located at the clicked point via the [PivotGridControl.CalcHitInfo(Point)](https://docs.devexpress.com/WindowsForms/DevExpress.XtraPivotGrid.PivotGridControl.CalcHitInfo(System.Drawing.Point)) method and check if it is a valid area. Update the DashboardItemClick event with the following logic:
+3. The Dashboard Designer raises the [DashboardDesigner.DashboardItemClick](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemClick) event when an end user clicks the expand / collapse button in a Pivot's row / column or click an empty area. To skip displaying the details dialog in this case, get information about the Pivot elements located at the clicked point by calling the [PivotGridControl.CalcHitInfo(Point)](https://docs.devexpress.com/WindowsForms/DevExpress.XtraPivotGrid.PivotGridControl.CalcHitInfo(System.Drawing.Point)) method and check if it is a valid area. Update the `DashboardItemClick` event:
 
     ```cs
     void DashboardItemClick(object sender, DashboardItemMouseActionEventArgs e) {
@@ -51,13 +51,13 @@ Below you find a step-by-step instruction that shows to create the extension fro
         }
     ```
 
-    The _doNotShowDataForThisArea_ variable determines whether an end user clicked the allowed area.
+    The `doNotShowDataForThisArea` variable determines whether an end user clicked the allowed area.
 
-## Integration to Dashboard Designer
+## Integration to a Dashboard Designer
 
 4. To allow end users to enable or disable this functionality for a specific Pivot item when designing dashboard, add a custom button to the DashboardDesigner's [Ribbon toolbar](https://docs.devexpress.com/Dashboard/15732/create-the-designer-and-viewer-applications/winforms-designer/ribbon-bars-and-menu/ribbon-ui).
 
-    Find the Page Group to which you can add your custom option. The following code snippet finds the **Pivot** → **Data** → **Interactivity** group:
+    Find the Page Group to which you can add your custom option. The following code snippet gets the **Pivot** → **Data** → **Interactivity** group:
 
     ```cs
             RibbonControl ribbon = dashboardDesigner.Ribbon;
@@ -65,7 +65,7 @@ Below you find a step-by-step instruction that shows to create the extension fro
             RibbonPageGroup group = page.Groups.OfType<DevExpress.DashboardWin.Bars.InteractivitySettingsRibbonPageGroup>().First();
     ```
 
-5. Create your custom button and add it to the found group.
+5. Create your custom button and add it to the group.
      ```cs
             showDetatilsBarButton = CreateRibbonButton();
             group.ItemLinks.Add(showDetatilsBarButton);
@@ -73,7 +73,7 @@ Below you find a step-by-step instruction that shows to create the extension fro
     
 6. Store information wheter the custom option enabled or disabled. This extension strore this information in items' custom properties.
 
-    On the custom button click, createa a new instance of the CustomPropertyHistoryItem object, specify its setting and pass it to the DashboardDesigner.AddToHistory method:
+    On the custom button click, createa a new instance of the CustomPropertyHistoryItem object, specify its settings and pass the object to the [DashboardDesigner.AddToHistory](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.AddToHistory(DevExpress.DashboardWin.IHistoryItem)) method:
 
     ```cs
     void showDetailsItem_ItemClick(object sender, ItemClickEventArgs e) {
@@ -91,7 +91,7 @@ Below you find a step-by-step instruction that shows to create the extension fro
         }
     ``` 
     
-7. After you added a history item you need to update your custom ribbon button's checked state. for this handle the DashbaordDesigner.DashboardCustomPropertyChanged event:
+7. Handle the [DashboardDesigner.DashboardCustomPropertyChanged](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardCustomPropertyChanged?v=20.1) event to update a checked state of the ribbon's custom button:
     ```cs 
         private void TargetDesigner_DashboardCustomPropertyChanged(object sender, CustomPropertyChangedEventArgs e)
         {
@@ -105,14 +105,14 @@ Below you find a step-by-step instruction that shows to create the extension fro
 
     ``` 
 
-8. To determine whether the custom functionality is enabled for an item check its CustomProperties.
+8.  Check the custom property value to determine whether the custom functionality is enabled for the selected dashboard item.
     ```cs
         bool IsDetailsEnabled(DashboardItem item) {
             return Convert.ToBoolean(item.CustomProperties.GetValue(PropertyName));
         }
     ``` 
 
-9. Update your custom ribbon button's checked state dynamically depending on the currently selected item. For this, handle the [DashboardDesigner.DashboardItemSelectionChanged](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemSelectionChanged) event.
+9. Update the checked state dynamically depending on the currently selected item. For this, handle the [DashboardDesigner.DashboardItemSelectionChanged](https://docs.devexpress.com/Dashboard/DevExpress.DashboardWin.DashboardDesigner.DashboardItemSelectionChanged) event.
     
     ```cs
     void Designer_DashboardItemSelected(object sender, DashboardItemSelectionChangedEventArgs e) {
