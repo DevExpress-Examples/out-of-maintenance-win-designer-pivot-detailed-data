@@ -1,4 +1,5 @@
 ﻿Imports DevExpress.XtraEditors
+Imports PivotExtension
 
 Namespace DesignerSample
 	Partial Public Class Form1

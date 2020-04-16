@@ -56,6 +56,9 @@
       </Panes>
     </Chart>
     <Pivot ComponentName="pivotDashboardItem1" Name="Pivot 1" DataSource="dashboardSqlDataSource1" DataMember="CustomerReports">
+      <CustomProperties>
+        <PivotDetailExtension>True</PivotDetailExtension>
+      </CustomProperties>
       <DataItems>
         <Dimension DataMember="CompanyName" DefaultId="DataItem0" />
         <Dimension DataMember="ProductName" DefaultId="DataItem1" />
@@ -87,4 +90,7 @@
       <string>pivotDashboardItem1</string>
     </ArrayOfString>
   </UserData>
+  <CustomProperties>
+    <PivotDetailExtension>True</PivotDetailExtension>
+  </CustomProperties>
 </Dashboard>

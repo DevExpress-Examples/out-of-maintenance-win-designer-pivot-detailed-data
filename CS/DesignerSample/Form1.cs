@@ -1,4 +1,5 @@
 ﻿using DevExpress.XtraEditors;
+using PivotExtension;
 
 namespace DesignerSample {
     public partial class Form1 : XtraForm {

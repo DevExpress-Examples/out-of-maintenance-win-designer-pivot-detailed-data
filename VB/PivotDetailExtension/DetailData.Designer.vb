@@ -1,4 +1,4 @@
-﻿Namespace DesignerSample
+﻿Namespace PivotExtension
 	Partial Public Class DetailData
 		''' <summary>
 		''' Required designer variable.

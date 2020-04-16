@@ -4,7 +4,8 @@ using System.Windows.Forms;
 using DevExpress.DashboardCommon;
 using DevExpress.XtraEditors;
 
-namespace DesignerSample {
+namespace PivotExtension
+{
     public partial class DetailData : XtraForm {
         public DetailData() {
             InitializeComponent();

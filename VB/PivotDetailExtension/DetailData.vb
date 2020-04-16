@@ -4,7 +4,7 @@ Imports System.Windows.Forms
 Imports DevExpress.DashboardCommon
 Imports DevExpress.XtraEditors
 
-Namespace DesignerSample
+Namespace PivotExtension
 	Partial Public Class DetailData
 		Inherits XtraForm
 

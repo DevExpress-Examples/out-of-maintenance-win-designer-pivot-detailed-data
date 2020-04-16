@@ -7,21 +7,23 @@ Imports System.Xml.Linq
 Imports System.Xml.Serialization
 Imports DevExpress.DashboardCommon
 Imports DevExpress.DashboardWin
-Imports DevExpress.DashboardWin.Bars
 Imports DevExpress.XtraBars
 Imports DevExpress.XtraBars.Ribbon
 Imports DevExpress.XtraPivotGrid
 
-Namespace DesignerSample
+Namespace PivotExtension
 	Public Class PivotDetailExtension
-		#Region "Initialization and Registration"
-		Private showDetatilsButton As BarCheckItem
-		Private targetDesigner As DashboardDesigner
-		Private targetViewer As DashboardViewer
+		Private Const PropertyName As String = "PivotDetailExtension"
 
-		Public Sub New()
-			showDetatilsButton = CreateRibbonButton()
-		End Sub
+		Private showDetatilsBarButton As BarCheckItem
+		Private dashboardControl As IDashboardControl
+		Private ReadOnly Property dashboardDesigner() As DashboardDesigner
+			Get
+				Return TryCast(dashboardControl, DashboardDesigner)
+			End Get
+		End Property
+
+		#Region "Initialization and Registration"
 
 		''' <summary>
 		''' Creates the "Display Details" button for the Ribbon
@@ -35,122 +37,95 @@ Namespace DesignerSample
 		End Function
 
 		''' <summary>
-		''' Attaches the Extension to DashboardViewer
+		''' Attaches the Extension to DashboardViewer or DashboardDesigner
 		''' </summary>
-		Public Sub Attach(ByVal viewer As DashboardViewer)
+		Public Sub Attach(ByVal dashboardControl As IDashboardControl)
 			Detach()
-			targetViewer = viewer
-			pivotItemsWithEnabledDetails = New List(Of String)()
+			Me.dashboardControl = dashboardControl
 			' Handle Events
-			AddHandler targetViewer.DashboardItemClick, AddressOf DashboardItemClick
-			AddHandler targetViewer.DashboardItemControlCreated, AddressOf DashboardItemControlCreated
-			AddHandler targetViewer.DashboardLoaded, AddressOf DashboardLoaded
+			AddHandler Me.dashboardControl.DashboardItemClick, AddressOf DashboardItemClick
+			If dashboardDesigner IsNot Nothing Then
+				AddButtonToRibbon()
+				AddHandler dashboardDesigner.DashboardCustomPropertyChanged, AddressOf TargetDesigner_DashboardCustomPropertyChanged
+				AddHandler dashboardDesigner.DashboardItemSelected, AddressOf DashboardItemSelected
+
+			End If
 		End Sub
 
 		''' <summary>
-		''' Attaches the Extension to DashboardDesigner
+		''' Adds the "Display Details" button to DashboardDesigner's Ribbon
 		''' </summary>
-		Public Sub Attach(ByVal designer As DashboardDesigner)
-			Detach()
-			targetDesigner = designer
-			pivotItemsWithEnabledDetails = New List(Of String)()
-			'Add Ribbon Toolbar button
-			Dim ribbon As RibbonControl = TryCast(targetDesigner.MenuManager, RibbonControl)
-			Dim category As PivotToolsRibbonPageCategory = ribbon.PageCategories.OfType(Of PivotToolsRibbonPageCategory)().First()
-			Dim page As DataRibbonPage = category.Pages.OfType(Of DataRibbonPage)().First()
-			Dim InteractivityGroup As InteractivitySettingsRibbonPageGroup = page.Groups.OfType(Of InteractivitySettingsRibbonPageGroup)().First()
-			InteractivityGroup.ItemLinks.Add(showDetatilsButton)
-			' Handle Events
-			AddHandler targetDesigner.DashboardItemClick, AddressOf DashboardItemClick
-			AddHandler targetDesigner.DashboardItemControlCreated, AddressOf DashboardItemControlCreated
-			AddHandler targetDesigner.DashboardLoaded, AddressOf DashboardLoaded
-			AddHandler targetDesigner.DashboardSaving, AddressOf Designer_DashboardSaving
-			AddHandler targetDesigner.DashboardItemSelectionChanged, AddressOf Designer_DashboardItemSelected
-			AddHandler targetDesigner.Dashboard.ItemCollectionChanged, AddressOf Dashboard_ItemCollectionChanged
+		Private Sub AddButtonToRibbon()
+			Dim ribbon As RibbonControl = dashboardDesigner.Ribbon
+			Dim page As RibbonPage = ribbon.GetDashboardRibbonPage(DashboardBarItemCategory.PivotTools, DashboardRibbonPage.Data)
+			Dim group As RibbonPageGroup = page.Groups.OfType(Of DevExpress.DashboardWin.Bars.InteractivitySettingsRibbonPageGroup)().First()
+			showDetatilsBarButton = CreateRibbonButton()
+			group.ItemLinks.Add(showDetatilsBarButton)
 		End Sub
+
+		''' <summary>
+		''' Removes the "Display Details" button from DashboardDesigner's Ribbon
+		''' </summary>
+		Private Sub RemoveButtonFromRibbon()
+			Dim ribbon As RibbonControl = dashboardDesigner.Ribbon
+			ribbon.Items.Remove(showDetatilsBarButton)
+		End Sub
+
 
 		''' <summary>
 		''' Detaches the Extension from the control
 		''' </summary>
 		Public Sub Detach()
-			If targetDesigner IsNot Nothing Then
-				Dim ribbon As RibbonControl = TryCast(targetDesigner.MenuManager, RibbonControl)
-				Dim category As PivotToolsRibbonPageCategory = ribbon.PageCategories.OfType(Of PivotToolsRibbonPageCategory)().First()
-				Dim page As DataRibbonPage = category.Pages.OfType(Of DataRibbonPage)().First()
-				Dim InteractivityGroup As InteractivitySettingsRibbonPageGroup = page.Groups.OfType(Of InteractivitySettingsRibbonPageGroup)().First()
-				InteractivityGroup.ItemLinks.Remove(showDetatilsButton)
-
-				RemoveHandler targetDesigner.DashboardItemClick, AddressOf DashboardItemClick
-				RemoveHandler targetDesigner.DashboardItemControlCreated, AddressOf DashboardItemControlCreated
-				RemoveHandler targetDesigner.DashboardSaving, AddressOf Designer_DashboardSaving
-				RemoveHandler targetDesigner.DashboardLoaded, AddressOf DashboardLoaded
-				RemoveHandler targetDesigner.DashboardItemSelectionChanged, AddressOf Designer_DashboardItemSelected
-				RemoveHandler targetDesigner.Dashboard.ItemCollectionChanged, AddressOf Dashboard_ItemCollectionChanged
+			If dashboardControl Is Nothing Then
+				Return
 			End If
-			If targetViewer IsNot Nothing Then
-				RemoveHandler targetViewer.DashboardItemClick, AddressOf DashboardItemClick
-				RemoveHandler targetViewer.DashboardItemControlCreated, AddressOf DashboardItemControlCreated
-				AddHandler targetViewer.DashboardLoaded, AddressOf DashboardLoaded
+			If dashboardDesigner IsNot Nothing Then
+				RemoveButtonFromRibbon()
+				RemoveHandler dashboardDesigner.DashboardCustomPropertyChanged, AddressOf TargetDesigner_DashboardCustomPropertyChanged
+				RemoveHandler dashboardDesigner.DashboardItemSelected, AddressOf DashboardItemSelected
 			End If
+			RemoveHandler dashboardControl.DashboardItemClick, AddressOf DashboardItemClick
+			dashboardControl = Nothing
 		End Sub
 		#End Region
 
 		#Region "Designer Business Logic"
+
+		''' <summary>
+		''' Updates the "Dispaly Details" button's state after the custom prioperty has been enabled / disabled. 
+		''' </summary>
+		Private Sub TargetDesigner_DashboardCustomPropertyChanged(ByVal sender As Object, ByVal e As CustomPropertyChangedEventArgs)
+			UpdateButtonState()
+		End Sub
 		''' <summary>
 		''' The "Dispaly Details" button's click handler. Enables / Disables the custom functionality.
 		''' </summary>
 		Private Sub showDetailsItem_ItemClick(ByVal sender As Object, ByVal e As ItemClickEventArgs)
-			If TypeOf targetDesigner.SelectedDashboardItem Is PivotDashboardItem Then
-				If IsDetailsEnabled(targetDesigner.SelectedDashboardItem.ComponentName) Then
-					pivotItemsWithEnabledDetails.Remove(targetDesigner.SelectedDashboardItem.ComponentName)
-				Else
-					pivotItemsWithEnabledDetails.Add(targetDesigner.SelectedDashboardItem.ComponentName)
-				End If
+			If TypeOf dashboardDesigner.SelectedDashboardItem Is PivotDashboardItem Then
+				Dim newValue As Boolean = Not IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem)
+				Dim status As String = If(IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem), "Enaled", "Disabled")
+                Dim historyItem = New CustomPropertyHistoryItem(dashboardDesigner.SelectedDashboardItem, PropertyName, newValue.ToString(), "Detail Popup " & status)
+                dashboardDesigner.AddToHistory(historyItem)
 			End If
-			UpdateButtonState()
 		End Sub
 
 		''' <summary>
 		''' Set the Checked/Unchecked state of the "Dispaly Details" button based on the currently selected item.
 		''' </summary>
 		Private Sub UpdateButtonState()
-			If targetDesigner.SelectedDashboardItem Is Nothing Then
+			If dashboardDesigner.SelectedDashboardItem Is Nothing Then
 				Return
 			End If
-			showDetatilsButton.Checked = IsDetailsEnabled(targetDesigner.SelectedDashboardItem.ComponentName)
+			showDetatilsBarButton.Checked = IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem)
 		End Sub
 
 		''' <summary>
 		''' Invokes update of the "Dispaly Details" button's state when selecting another item.
 		''' </summary>
-		Private Sub Designer_DashboardItemSelected(ByVal sender As Object, ByVal e As DashboardItemSelectionChangedEventArgs)
-			If TypeOf targetDesigner.Dashboard.Items(e.DashboardItemName) Is PivotDashboardItem Then
+		Private Sub DashboardItemSelected(ByVal sender As Object, ByVal e As DashboardItemSelectedEventArgs)
+			If TypeOf e.SelectedDashboardItem Is PivotDashboardItem Then
 				UpdateButtonState()
 			End If
-		End Sub
-
-		''' <summary>
-		''' Saves information about PivotGrids with enabled custom option to the dashboard *.xml file (UserData section).
-		''' </summary>
-		Private Sub Designer_DashboardSaving(ByVal sender As Object, ByVal e As DashboardSavingEventArgs)
-			Dim xs As New XmlSerializer(GetType(List(Of String)))
-			Dim xElement As New XDocument()
-
-			Using xw As XmlWriter = xElement.CreateWriter()
-				xs.Serialize(xw, pivotItemsWithEnabledDetails)
-			End Using
-			e.Dashboard.UserData = xElement.Root
-		End Sub
-
-		''' <summary>
-		''' Updates information about PivotGrids with enabled custom option after a Pivot Item has been deleted.
-		''' </summary>
-		Private Sub Dashboard_ItemCollectionChanged(ByVal sender As Object, ByVal e As DevExpress.DataAccess.NotifyingCollectionChangedEventArgs(Of DashboardItem))
-			For Each pivot As PivotDashboardItem In e.RemovedItems.OfType(Of PivotDashboardItem)()
-				If pivotItemsWithEnabledDetails.Contains(pivot.ComponentName) Then
-					pivotItemsWithEnabledDetails.Remove(pivot.ComponentName)
-				End If
-			Next pivot
 		End Sub
 
 		#End Region
@@ -158,76 +133,36 @@ Namespace DesignerSample
 		#Region "Business Logic Common for Designer and Viewer"
 
 		''' <summary>
-		''' Contains ComponentNames of Pivot Items with the enabled custom option
+		''' Used to get underlying data and display the DetailData dialog
 		''' </summary>
-		Private pivotItemsWithEnabledDetails As List(Of String)
+		Private Sub DashboardItemClick(ByVal sender As Object, ByVal e As DashboardItemMouseActionEventArgs)
 
-		''' <summary>
-		''' Loads information about Pivot Items with the enabled custom option after a Dashboard has been loaded
-		''' </summary>
-		Private Sub DashboardLoaded(ByVal sender As Object, ByVal e As DashboardLoadedEventArgs)
-			AddHandler e.Dashboard.ItemCollectionChanged, AddressOf Dashboard_ItemCollectionChanged
-			pivotItemsWithEnabledDetails = New List(Of String)()
+			If IsDetailsEnabled(e.DashboardItemName) Then
+				Dim pivot As PivotGridControl = TryCast(dashboardDesigner.GetUnderlyingControl(e.DashboardItemName), PivotGridControl)
+				Dim hi As PivotGridHitInfo = pivot.CalcHitInfo(pivot.PointToClient(Cursor.Position))
 
-			If e.Dashboard.UserData IsNot Nothing Then
-				Dim xs As New XmlSerializer(GetType(List(Of String)))
-				Using xr As XmlReader = e.Dashboard.UserData.CreateReader()
-					If xs.CanDeserialize(xr) Then
-						pivotItemsWithEnabledDetails = TryCast(xs.Deserialize(xr), List(Of String))
-					End If
-				End Using
+				Dim doNotShowDataForThisArea As Boolean = (hi.HitTest = PivotGridHitTest.Value AndAlso hi.ValueInfo.ValueHitTest = PivotGridValueHitTest.ExpandButton) OrElse (hi.HitTest = PivotGridHitTest.None)
+				If Not doNotShowDataForThisArea Then
+					Using detailForm As New DetailData(e.GetUnderlyingData())
+						detailForm.ShowDialog()
+					End Using
+				End If
 			End If
-			UpdateButtonState()
-
 		End Sub
 
 		''' <summary>
 		''' Returns a value indicating whether the custom option is enabled for a specific Pivot Item.  
 		''' </summary>
-		Private Function IsDetailsEnabled(ByVal componentName As String) As Boolean
-			Return pivotItemsWithEnabledDetails.Contains(componentName)
+		Private Function IsDetailsEnabled(ByVal item As DashboardItem) As Boolean
+			Return Convert.ToBoolean(item.CustomProperties.GetValue(PropertyName))
 		End Function
 
-		#End Region
-
-		#Region "Action Business Logic"
-
 		''' <summary>
-		''' Returns a value indicating if the custom logic should be skipped for the current area (empty area and collapse/expand button).
+		''' Returns a value indicating whether the custom option is enabled for a Pivot Item with a specific component name.  
 		''' </summary>
-		Private doNotShowDataForThisArea As Boolean = False
-
-		''' <summary>
-		''' Used to handle the underlying Pivot Gid Control's MouseDown event to determine the clicked area
-		''' </summary>
-		Private Sub DashboardItemControlCreated(ByVal sender As Object, ByVal e As DashboardItemControlEventArgs)
-			If e.PivotGridControl IsNot Nothing Then
-				AddHandler e.PivotGridControl.MouseDown, AddressOf PivotGridControl_MouseDown
-			End If
-		End Sub
-
-		''' <summary>
-		''' Used to determine the clicked area and skip DashboardItemClick processing if the Expand/Collapse button is pressed
-		''' </summary>
-		Private Sub PivotGridControl_MouseDown(ByVal sender As Object, ByVal e As MouseEventArgs)
-			Dim pivot As PivotGridControl = TryCast(sender, PivotGridControl)
-			Dim hi As PivotGridHitInfo = pivot.CalcHitInfo(e.Location)
-
-			doNotShowDataForThisArea = (hi.HitTest = PivotGridHitTest.Value AndAlso hi.ValueInfo.ValueHitTest = PivotGridValueHitTest.ExpandButton) OrElse (hi.HitTest = PivotGridHitTest.None)
-		End Sub
-
-		''' <summary>
-		''' Used to get underlying data and display the DetailData dialog
-		''' </summary>
-		Private Sub DashboardItemClick(ByVal sender As Object, ByVal e As DashboardItemMouseActionEventArgs)
-			If Not IsDetailsEnabled(e.DashboardItemName) OrElse doNotShowDataForThisArea Then
-				Return
-			End If
-
-			Using detailForm As New DetailData(e.GetUnderlyingData())
-				detailForm.ShowDialog()
-			End Using
-		End Sub
+		Private Function IsDetailsEnabled(ByVal itemName As String) As Boolean
+			Return IsDetailsEnabled(dashboardDesigner.Dashboard.Items(itemName))
+		End Function
 		#End Region
 	End Class
 End Namespace

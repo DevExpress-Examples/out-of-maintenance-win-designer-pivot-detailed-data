@@ -1,4 +1,4 @@
-﻿namespace DesignerSample
+﻿namespace PivotExtension
 {
     partial class DetailData
     {
