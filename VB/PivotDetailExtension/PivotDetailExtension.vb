@@ -43,7 +43,7 @@ Namespace PivotExtension
 			Detach()
 			Me.dashboardControl = dashboardControl
 			' Handle Events
-			AddHandler Me.dashboardControl.DashboardItemClick, AddressOf DashboardItemClick
+			AddHandler dashboardControl.DashboardItemClick, AddressOf DashboardItemClick
 			If dashboardDesigner IsNot Nothing Then
 				AddButtonToRibbon()
 				AddHandler dashboardDesigner.DashboardCustomPropertyChanged, AddressOf TargetDesigner_DashboardCustomPropertyChanged
@@ -104,8 +104,8 @@ Namespace PivotExtension
 			If TypeOf dashboardDesigner.SelectedDashboardItem Is PivotDashboardItem Then
 				Dim newValue As Boolean = Not IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem)
 				Dim status As String = If(IsDetailsEnabled(dashboardDesigner.SelectedDashboardItem), "Enaled", "Disabled")
-                Dim historyItem = New CustomPropertyHistoryItem(dashboardDesigner.SelectedDashboardItem, PropertyName, newValue.ToString(), "Detail Popup " & status)
-                dashboardDesigner.AddToHistory(historyItem)
+				Dim historyItem = New CustomPropertyHistoryItem(dashboardDesigner.SelectedDashboardItem, PropertyName, newValue.ToString(), "Detail Popup " & status) 'text displayed in the Undo/Redo button's tooltip
+				dashboardDesigner.AddToHistory(historyItem)
 			End If
 		End Sub
 
