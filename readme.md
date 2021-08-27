@@ -1,3 +1,8 @@
+<!-- default badges list -->
+![](https://img.shields.io/endpoint?url=https://codecentral.devexpress.com/api/v1/VersionRange/224884257/20.1.3%2B)
+[![](https://img.shields.io/badge/Open_in_DevExpress_Support_Center-FF7200?style=flat-square&logo=DevExpress&logoColor=white)](https://supportcenter.devexpress.com/ticket/details/T837224)
+[![](https://img.shields.io/badge/📖_How_to_use_DevExpress_Examples-e9f6fc?style=flat-square)](https://docs.devexpress.com/GeneralInformation/403183)
+<!-- default badges end -->
 # How to display detailed data for a clicked Pivot's element
 
 This example shows how to create an extension for the [Dashboard Designer](https://docs.devexpress.com/Dashboard/117006) / [Dashboard Viewer](https://docs.devexpress.com/Dashboard/117122) controls that displays detailed data for a clicked pivot element (a data cell or a field value). This extension adds the **Display Details** button to the ribbon. End users who design dashboards can enable or disable this functionality in the same manner as [Drill-Down](https://docs.devexpress.com/Dashboard/15703), [Master Filtering](https://docs.devexpress.com/Dashboard/15702), or other options.
